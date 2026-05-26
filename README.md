@@ -34,7 +34,9 @@ Google Colab（正式名称: Google Colaboratory）は、**ブラウザ上で様
 2. 画面上部のメニューから **「ランタイム」→「すべてのセルを実行」** を選択するか、各セルを上から順に **Shift + Enter** で実行してください
 3. 初回実行時に「このノートブックはGitHubで作成されたものです」という警告が表示されることがありますが、**「このまま実行」** を選択してください
 
-> **⚠️ 注意:** ノートブック上での変更はColabのセッション終了時に失われます。結果を保存したい場合は、**「ファイル」→「ドライブにコピーを保存」** でGoogleドライブに保存してください。
+> **⚠️ 注意:** ノートブック上での変更はColabのセッション終了時に失われます。結果を残したい場合は、次のいずれかを行ってください。
+> - **最終セル「5. 結果のダウンロード」** を実行すると、デザインPDB・予測構造・スコアCSVなどの全結果がzipにまとめられ、お使いのPCにダウンロードされます。
+> - ノートブック自体を残したい場合は、**「ファイル」→「ドライブにコピーを保存」** でGoogleドライブに保存してください。
 
 ## References
 
@@ -47,6 +49,8 @@ Google Colab（正式名称: Google Colaboratory）は、**ブラウザ上で様
   Jumper, J., Evans, R., Pritzel, A. *et al.* Highly accurate protein structure prediction with AlphaFold. *Nature* **596**, 583–589 (2021). https://doi.org/10.1038/s41586-021-03819-2
 - **Boltz-1**
   Wohlwend, J., Corso, G., Passaro, S. *et al.* Boltz-1: Democratizing Biomolecular Interaction Modeling. *bioRxiv* (2024). https://doi.org/10.1101/2024.11.19.624167
+- **Boltz-2**
+  Passaro, S., Corso, G., Wohlwend, J. *et al.* Boltz-2: Towards Accurate and Efficient Binding Affinity Prediction. *bioRxiv* (2025). https://doi.org/10.1101/2025.06.14.659707
 - **ipSAE**
   Dunbrack, R. L. Rēs ipSAE loquuntur: What's wrong with AlphaFold's ipTM score and how to fix it. *bioRxiv* (2025). https://doi.org/10.1101/2025.02.10.637595
 - **ColabDesign**
