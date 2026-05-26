@@ -35,3 +35,21 @@ Google Colab（正式名称: Google Colaboratory）は、**ブラウザ上で様
 3. 初回実行時に「このノートブックはGitHubで作成されたものです」という警告が表示されることがありますが、**「このまま実行」** を選択してください
 
 > **⚠️ 注意:** ノートブック上での変更はColabのセッション終了時に失われます。結果を保存したい場合は、**「ファイル」→「ドライブにコピーを保存」** でGoogleドライブに保存してください。
+
+## References
+
+本ノートブックは以下のツール・手法を利用しています。
+
+- **Proteina-Complexa**
+  Didi, K., Zhang, Z., Zhou, G. *et al.* Scaling Atomistic Protein Binder Design with Generative Pretraining and Test-Time Compute. *arXiv* (2026). https://arxiv.org/abs/2603.27950
+  GitHub: https://github.com/NVIDIA-Digital-Bio/Proteina-Complexa
+- **AlphaFold2**
+  Jumper, J., Evans, R., Pritzel, A. *et al.* Highly accurate protein structure prediction with AlphaFold. *Nature* **596**, 583–589 (2021). https://doi.org/10.1038/s41586-021-03819-2
+- **Boltz-1**
+  Wohlwend, J., Corso, G., Passaro, S. *et al.* Boltz-1: Democratizing Biomolecular Interaction Modeling. *bioRxiv* (2024). https://doi.org/10.1101/2024.11.19.624167
+- **ipSAE**
+  Dunbrack, R. L. Rēs ipSAE loquuntur: What's wrong with AlphaFold's ipTM score and how to fix it. *bioRxiv* (2025). https://doi.org/10.1101/2025.02.10.637595
+- **ColabDesign**
+  Ovchinnikov, S. *et al.* *ColabDesign: Making Protein Design accessible to all via Google Colab.* GitHub: https://github.com/sokrypton/ColabDesign
+- **py3Dmol / 3Dmol.js**
+  Rego, N. & Koes, D. 3Dmol.js: molecular visualization with WebGL. *Bioinformatics* **31**, 1322–1324 (2015). https://doi.org/10.1093/bioinformatics/btu829
