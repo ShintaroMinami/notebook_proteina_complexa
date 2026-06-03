@@ -1,0 +1,115 @@
+{%- extends 'lab/index.html.j2' -%}
+
+{% block extra_css %}
+<link rel="preconnect" href="https://fonts.googleapis.com">
+<link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
+<link href="https://fonts.googleapis.com/css2?family=Roboto:wght@400;500&family=Roboto+Mono:wght@400;500&family=Zen+Kaku+Gothic+New:wght@400;500&display=swap" rel="stylesheet">
+<style type="text/css">
+:root{
+  --cc-ink:#202124;--cc-mut:#5f6368;--cc-bd:#e0e0e0;--cc-codebg:#f7f7f7;--cc-blue:#1a73e8;
+  --cc-ui:'Roboto',-apple-system,'Zen Kaku Gothic New',sans-serif;--cc-mono:'Roboto Mono',monospace;
+}
+body.jp-Notebook{background:#fff;}
+main{max-width:960px;margin:0 auto;padding:24px 20px 70px;}
+
+/* ---------- generic cell (Colab-style row) ---------- */
+.cc-cell{display:flex;gap:10px;margin:14px 0;font-family:var(--cc-ui);}
+.cc-gutter{flex:0 0 40px;display:flex;justify-content:center;padding-top:6px;}
+.cc-runbtn{width:28px;height:28px;border-radius:50%;border:1px solid var(--cc-bd);background:#fff;
+  display:flex;align-items:center;justify-content:center;color:var(--cc-mut);}
+.cc-runbtn svg{margin-left:2px;}
+.cc-body{flex:1;min-width:0;}
+
+/* ---------- collapsible code ---------- */
+details.cc-code{border:1px solid var(--cc-bd);border-radius:8px;background:var(--cc-codebg);overflow:hidden;margin-top:8px;}
+details.cc-code>summary{list-style:none;cursor:pointer;display:flex;align-items:center;gap:8px;
+  padding:7px 12px;color:var(--cc-mut);font-size:12.5px;background:#fff;border-bottom:1px solid var(--cc-bd);}
+details.cc-code>summary::-webkit-details-marker{display:none;}
+details.cc-code:not([open])>summary{border-bottom:0;}
+.cc-ico{transition:transform .15s;}
+details.cc-code[open] .cc-ico{transform:rotate(90deg);}
+.cc-lbl-show{display:inline;} .cc-lbl-hide{display:none;}
+details.cc-code[open] .cc-lbl-show{display:none;} details.cc-code[open] .cc-lbl-hide{display:inline;}
+details.cc-code .jp-InputArea-editor{border:0;background:transparent;}
+details.cc-code .jp-InputArea{overflow:visible;}
+
+/* ---------- Colab "form" cell ---------- */
+.cc-form{border:1px solid var(--cc-bd);border-radius:8px;background:#fff;overflow:hidden;}
+.cc-form-title{display:flex;align-items:center;gap:8px;padding:10px 14px;border-bottom:1px solid var(--cc-bd);
+  font-weight:500;background:#fafafa;color:var(--cc-ink);}
+.cc-form-title .cc-menu{margin-left:auto;color:#bdbdbd;letter-spacing:2px;}
+.cc-form-md{padding:6px 16px 0;color:var(--cc-ink);font-size:13px;line-height:1.7;}
+.cc-form-md table{border-collapse:collapse;margin:6px 0;}
+.cc-form-md th,.cc-form-md td{border:1px solid var(--cc-bd);padding:4px 10px;text-align:left;}
+.cc-form-md hr{border:0;border-top:1px solid var(--cc-bd);margin:8px 0;}
+.cc-form-grid{padding:14px 18px;display:grid;grid-template-columns:220px 1fr;gap:12px 18px;align-items:center;}
+.cc-form-grid>label{color:var(--cc-mut);font-family:var(--cc-mono);font-size:13px;}
+.cc-fld{display:flex;align-items:center;gap:10px;}
+.cc-fld input[type=text]{font-family:var(--cc-mono);font-size:13px;padding:7px 10px;border:1px solid var(--cc-bd);
+  border-radius:4px;width:280px;color:var(--cc-ink);background:#fff;}
+.cc-fld select{font-size:13px;padding:7px 10px;border:1px solid var(--cc-bd);border-radius:4px;background:#fff;min-width:200px;color:var(--cc-ink);}
+.cc-fld input[type=range]{width:240px;accent-color:var(--cc-blue);}
+.cc-fld input[type=checkbox]{width:18px;height:18px;accent-color:var(--cc-blue);}
+.cc-fld .cc-val{font-family:var(--cc-mono);color:var(--cc-ink);min-width:28px;}
+</style>
+{% endblock extra_css %}
+
+{%- macro cc_runbtn() -%}
+<div class="cc-gutter"><div class="cc-runbtn"><svg width="11" height="11" viewBox="0 0 12 12" fill="currentColor"><path d="M2 1.5v9l8-4.5z"/></svg></div></div>
+{%- endmacro -%}
+
+{%- macro cc_summary() -%}
+<summary><span class="cc-ico">&#9656;</span><span class="cc-lbl-show">Show code</span><span class="cc-lbl-hide">Hide code</span></summary>
+{%- endmacro -%}
+
+{% block footer_js %}
+<script>
+/* Mirror each slider's value into its adjacent label (look only, no compute). */
+document.querySelectorAll('.cc-fld input[type=range]').forEach(function(r){
+  var v = r.nextElementSibling;
+  if (v) r.addEventListener('input', function(){ v.textContent = r.value; });
+});
+</script>
+{% endblock footer_js %}
+
+{% block codecell %}
+{%- set form = cell.metadata.get('colab_form', {}) -%}
+{%- set is_form = form.get('title') or form.get('fields') or form.get('markdown') -%}
+<div class="cc-cell jp-Cell jp-CodeCell jp-Notebook-cell {{ celltags(cell) }}">
+{{ cc_runbtn() }}
+<div class="cc-body">
+{%- if is_form -%}
+  <div class="cc-form">
+    {%- if form.get('title') -%}
+    <div class="cc-form-title">{{ form.title }}<span class="cc-menu">&#8942;</span></div>
+    {%- endif -%}
+    {%- if form.get('markdown') -%}
+    <div class="cc-form-md jp-RenderedHTMLCommon">{{ form.markdown | markdown2html }}</div>
+    {%- endif -%}
+    {%- if form.get('fields') -%}
+    <div class="cc-form-grid">
+      {%- for f in form.fields -%}
+      <label>{{ f.name }}</label>
+      <div class="cc-fld">
+        {%- if f.kind == 'boolean' -%}
+          <input type="checkbox" {% if f.checked %}checked{% endif %}>
+        {%- elif f.kind == 'enum' -%}
+          <select>{% for o in f.options %}<option {% if o == f.value %}selected{% endif %}>{{ o }}</option>{% endfor %}</select>
+        {%- elif f.kind == 'slider' -%}
+          <input type="range" min="{{ f.min }}" max="{{ f.max }}" step="{{ f.step }}" value="{{ f.value }}"><span class="cc-val">{{ f.value }}</span>
+        {%- else -%}
+          <input type="text" value="{{ f.value }}">
+        {%- endif -%}
+      </div>
+      {%- endfor -%}
+    </div>
+    {%- endif -%}
+  </div>
+  <details class="cc-code">{{ cc_summary() }}{{ self.input() }}</details>
+{%- else -%}
+  <details class="cc-code" open>{{ cc_summary() }}{{ self.input() }}</details>
+{%- endif -%}
+{%- if cell.outputs -%}{{ self.output_group() }}{%- endif -%}
+</div>
+</div>
+{% endblock codecell %}

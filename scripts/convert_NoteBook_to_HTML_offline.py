@@ -21,6 +21,7 @@ Usage:
 from __future__ import annotations
 
 import argparse
+import ast
 import re
 import sys
 import urllib.request
@@ -28,10 +29,82 @@ from pathlib import Path
 
 import nbformat
 from nbconvert import HTMLExporter
+from nbconvert.preprocessors import Preprocessor
 
 # Matches the CDN URL py3Dmol injects, e.g.
 # https://cdn.jsdelivr.net/npm/3dmol@2.5.5/build/3Dmol-min.js
 _THREEDMOL_URL_RE = re.compile(r"https?://[^'\"]*3Dmol[^'\"]*\.js", re.IGNORECASE)
+
+# ---- Colab form directive parsing (#@title / #@markdown / #@param) ----
+_TITLE_RE = re.compile(r"^\s*#@title\s?(?P<text>.*?)\s*(?:\{[^}]*\})?\s*$")
+_MARKDOWN_RE = re.compile(r"^\s*#@markdown ?(?P<text>.*)$")
+_PARAM_RE = re.compile(
+    r"^\s*(?P<name>\w+)\s*=\s*(?P<val>.*?)\s*#@param\b(?P<spec>.*)$"
+)
+
+
+def _literal(text: str) -> str:
+    """Best-effort unwrap of a Python literal to its display string."""
+    try:
+        return str(ast.literal_eval(text.strip()))
+    except (ValueError, SyntaxError):
+        return text.strip().strip("\"'")
+
+
+def _parse_param(name: str, val_raw: str, spec: str) -> dict:
+    """Turn one `name = value #@param ...` line into a widget field spec."""
+    spec = spec.strip()
+    if spec.startswith("["):  # dropdown: #@param ["a", "b", ...]
+        try:
+            options = [str(o) for o in ast.literal_eval(spec)]
+        except (ValueError, SyntaxError):
+            options = []
+        return {"name": name, "kind": "enum", "options": options,
+                "value": _literal(val_raw)}
+
+    type_match = re.search(r'type:\s*"(\w+)"', spec)
+    ptype = type_match.group(1) if type_match else "string"
+    if ptype == "boolean":
+        return {"name": name, "kind": "boolean", "checked": val_raw.strip() == "True"}
+    if ptype == "slider":
+        field = {"name": name, "kind": "slider", "value": val_raw.strip()}
+        for key in ("min", "max", "step"):
+            km = re.search(key + r":\s*([-\d.]+)", spec)
+            field[key] = km.group(1) if km else ""
+        return field
+    # string / integer / number → text box (strings get their quotes stripped)
+    value = _literal(val_raw) if ptype == "string" else val_raw.strip()
+    return {"name": name, "kind": "text", "value": value}
+
+
+def parse_colab_form(source: str) -> dict:
+    """Extract Colab form metadata (title, markdown, param fields) from a cell."""
+    title = ""
+    markdown_lines: list[str] = []
+    fields: list[dict] = []
+    for line in source.splitlines():
+        tm = _TITLE_RE.match(line)
+        if tm and line.lstrip().startswith("#@title"):
+            title = tm.group("text").strip()
+            continue
+        mm = _MARKDOWN_RE.match(line)
+        if mm and line.lstrip().startswith("#@markdown"):
+            markdown_lines.append(mm.group("text"))
+            continue
+        pm = _PARAM_RE.match(line)
+        if pm:
+            fields.append(_parse_param(pm.group("name"), pm.group("val"),
+                                       pm.group("spec")))
+    return {"title": title, "markdown": "\n".join(markdown_lines), "fields": fields}
+
+
+class ColabFormPreprocessor(Preprocessor):
+    """Attach parsed Colab form metadata to each code cell for the template."""
+
+    def preprocess_cell(self, cell, resources, index):
+        if cell.cell_type == "code":
+            cell.metadata["colab_form"] = parse_colab_form(cell.source)
+        return cell, resources
 
 
 def _fetch(url: str, timeout: int = 120) -> str:
@@ -74,7 +147,12 @@ def _embed_3dmol(html: str) -> str:
 def convert(nb_path: Path, out_path: Path | None) -> Path:
     """Render the notebook to a self-contained offline-interactive HTML file."""
     nb = nbformat.read(nb_path, as_version=4)
-    html, _ = HTMLExporter(template_name="lab").from_notebook_node(nb)
+    exporter = HTMLExporter(
+        template_name="colab_template",
+        extra_template_basedirs=[str(Path(__file__).resolve().parent)],
+    )
+    exporter.register_preprocessor(ColabFormPreprocessor, enabled=True)
+    html, _ = exporter.from_notebook_node(nb)
     html = _embed_3dmol(html)
 
     out_path = out_path or nb_path.with_suffix(".offline.html")
