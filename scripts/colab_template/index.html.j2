@@ -13,12 +13,11 @@ body.jp-Notebook{background:#fff;}
 main{max-width:960px;margin:0 auto;padding:24px 20px 70px;}
 
 /* ---------- generic cell (Colab-style row) ---------- */
-.cc-cell{display:flex;gap:10px;margin:14px 0;font-family:var(--cc-ui);}
-.cc-gutter{flex:0 0 40px;display:flex;justify-content:center;padding-top:6px;}
-.cc-runbtn{width:28px;height:28px;border-radius:50%;border:1px solid var(--cc-bd);background:#fff;
-  display:flex;align-items:center;justify-content:center;color:var(--cc-mut);}
+.cc-cell{margin:14px 0;font-family:var(--cc-ui);}
+.cc-runbtn{width:24px;height:24px;border-radius:50%;border:1px solid var(--cc-bd);background:#fff;
+  display:inline-flex;align-items:center;justify-content:center;color:var(--cc-mut);flex:0 0 auto;}
 .cc-runbtn svg{margin-left:2px;}
-.cc-body{flex:1;min-width:0;}
+.cc-body{min-width:0;}
 
 /* ---------- collapsible code ---------- */
 details.cc-code{border:1px solid var(--cc-bd);border-radius:8px;background:var(--cc-codebg);overflow:hidden;margin-top:8px;}
@@ -67,11 +66,11 @@ details.cc-code .jp-InputArea{overflow:visible;}
 {% endblock extra_css %}
 
 {%- macro cc_runbtn() -%}
-<div class="cc-gutter"><div class="cc-runbtn"><svg width="11" height="11" viewBox="0 0 12 12" fill="currentColor"><path d="M2 1.5v9l8-4.5z"/></svg></div></div>
+<span class="cc-runbtn"><svg width="11" height="11" viewBox="0 0 12 12" fill="currentColor"><path d="M2 1.5v9l8-4.5z"/></svg></span>
 {%- endmacro -%}
 
-{%- macro cc_summary() -%}
-<summary><span class="cc-ico">&#9656;</span><span class="cc-lbl-show">Show code</span><span class="cc-lbl-hide">Hide code</span></summary>
+{%- macro cc_summary(run=false) -%}
+<summary>{% if run %}{{ cc_runbtn() }}{% endif %}<span class="cc-ico">&#9656;</span><span class="cc-lbl-show">Show code</span><span class="cc-lbl-hide">Hide code</span></summary>
 {%- endmacro -%}
 
 {% block footer_js %}
@@ -88,13 +87,10 @@ document.querySelectorAll('.cc-fld input[type=range]').forEach(function(r){
 {%- set form = cell.metadata.get('colab_form', {}) -%}
 {%- set is_form = form.get('title') or form.get('fields') or form.get('markdown') -%}
 <div class="cc-cell jp-Cell jp-CodeCell jp-Notebook-cell {{ celltags(cell) }}">
-{{ cc_runbtn() }}
 <div class="cc-body">
 {%- if is_form -%}
   <div class="cc-form">
-    {%- if form.get('title') -%}
-    <div class="cc-form-title">{{ form.title }}<span class="cc-menu">&#8942;</span></div>
-    {%- endif -%}
+    <div class="cc-form-title">{{ cc_runbtn() }}<span class="cc-title-text">{{ form.title }}</span><span class="cc-menu">&#8942;</span></div>
     {%- if form.get('markdown') -%}
     <div class="cc-form-md jp-RenderedHTMLCommon">{{ form.markdown | markdown2html }}</div>
     {%- endif -%}
@@ -119,7 +115,7 @@ document.querySelectorAll('.cc-fld input[type=range]').forEach(function(r){
   </div>
   <details class="cc-code">{{ cc_summary() }}{{ self.input() }}</details>
 {%- else -%}
-  <details class="cc-code" open>{{ cc_summary() }}{{ self.input() }}</details>
+  <details class="cc-code" open>{{ cc_summary(true) }}{{ self.input() }}</details>
 {%- endif -%}
 {%- if cell.outputs -%}{{ self.output_group() }}{%- endif -%}
 </div>
