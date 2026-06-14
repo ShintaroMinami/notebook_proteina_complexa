@@ -152,9 +152,11 @@ class ColabFormPreprocessor(Preprocessor):
 
 
 def _fetch(url: str, timeout: int = 120) -> str:
-    """Download a text resource (the 3Dmol.js bundle)."""
+    """Download a text resource. Decodes with utf-8-sig so a leading BOM is stripped
+    — a BOM left in inlined CSS would corrupt the first selector (e.g. it broke the
+    .chardinjs-overlay rule, leaving the overlay position:static)."""
     with urllib.request.urlopen(url, timeout=timeout) as resp:
-        return resp.read().decode("utf-8")
+        return resp.read().decode("utf-8-sig")
 
 
 def _embed_3dmol(html: str) -> str:
@@ -188,13 +190,12 @@ def _embed_3dmol(html: str) -> str:
     return inject + html
 
 
-# chardin.js (guided-tour overlay) + jQuery, fetched once at conversion time.
-# jQuery 1.9.1 + the full (non-min) chardinjs.js are the exact combination known to
-# work; the minified chardin build is an older/incompatible variant whose toggle()
-# did not open the overlay.
+# chardin.js (guided-tour overlay): jQuery comes from a CDN; chardin.js + its CSS are
+# vendored under scripts/vendor/ because the CDN builds behave differently (the newer
+# one spotlights one element at a time with a 4-mask overlay). The vendored copy is
+# the single-overlay "show all hints at once" version that matches the reference.
 _JQUERY_URL = "https://code.jquery.com/jquery-1.9.1.min.js"
-_CHARDIN_JS_URL = "https://cdn.jsdelivr.net/gh/heelhook/chardin.js/chardinjs.js"
-_CHARDIN_CSS_URL = "https://cdn.jsdelivr.net/gh/heelhook/chardin.js/chardinjs.css"
+_VENDOR_DIR = Path(__file__).resolve().parent / "vendor"
 
 # Floating "show guide" button + tooltip styling layered on top of chardin's own CSS.
 _CHARDIN_EXTRA_CSS = (
@@ -227,10 +228,10 @@ def _embed_chardin(html: str) -> str:
     if "data-intro=" not in html:
         return html
 
-    print(f"fetching jQuery + chardin.js: {_CHARDIN_JS_URL}")
+    print(f"fetching jQuery: {_JQUERY_URL}; vendoring chardin.js from {_VENDOR_DIR}")
     jquery_js = _fetch(_JQUERY_URL)
-    chardin_js = _fetch(_CHARDIN_JS_URL)
-    chardin_css = _fetch(_CHARDIN_CSS_URL)
+    chardin_js = (_VENDOR_DIR / "chardinjs.js").read_text(encoding="utf-8")
+    chardin_css = (_VENDOR_DIR / "chardinjs.css").read_text(encoding="utf-8")
 
     head = (
         "<!-- chardin.js injected -->\n"
