@@ -74,6 +74,12 @@ details.cc-code .jp-InputArea{overflow:visible;}
 <summary><span class="cc-ico">&#9656;</span><span class="cc-lbl-show">Show code</span><span class="cc-lbl-hide">Hide code</span></summary>
 {%- endmacro -%}
 
+{# chardin guided-tour attributes for one target (form/code/output), if specified #}
+{%- macro ch_attr(ch, target) -%}
+{%- set c = ch.get(target) -%}
+{%- if c %} data-intro="{{ c.text }}" data-position="{{ c.position }}"{% endif -%}
+{%- endmacro -%}
+
 {% block footer_js %}
 <script>
 /* Mirror each slider's value into its adjacent label (look only, no compute). */
@@ -86,14 +92,15 @@ document.querySelectorAll('.cc-fld input[type=range]').forEach(function(r){
 
 {% block codecell %}
 {%- set form = cell.metadata.get('colab_form', {}) -%}
+{%- set ch = form.get('chardin', {}) -%}
 {%- set is_form = form.get('title') or form.get('fields') or form.get('markdown') -%}
-<div class="cc-cell jp-Cell jp-CodeCell jp-Notebook-cell {{ celltags(cell) }}">
+<div class="cc-cell jp-Cell jp-CodeCell jp-Notebook-cell {{ celltags(cell) }}"{{ ch_attr(ch, 'cell') }}>
 {%- if is_form and form.get('title') -%}
 <div class="cc-title">{{ form.title }}</div>
 {%- endif -%}
 <div class="cc-body">
 {%- if is_form -%}
-  <div class="cc-form">
+  <div class="cc-form"{{ ch_attr(ch, 'form') }}>
     <div class="cc-form-row">
     {{ cc_runbtn() }}
     <div class="cc-form-content">
@@ -121,11 +128,11 @@ document.querySelectorAll('.cc-fld input[type=range]').forEach(function(r){
     </div>
     </div>
   </div>
-  <details class="cc-code">{{ cc_summary() }}{{ self.input() }}</details>
+  <details class="cc-code"{{ ch_attr(ch, 'code') }}>{{ cc_summary() }}{{ self.input() }}</details>
 {%- else -%}
-  <details class="cc-code" open>{{ cc_summary() }}{{ self.input() }}</details>
+  <details class="cc-code" open{{ ch_attr(ch, 'code') }}>{{ cc_summary() }}{{ self.input() }}</details>
 {%- endif -%}
-{%- if cell.outputs -%}{{ self.output_group() }}{%- endif -%}
+{%- if cell.outputs -%}<div class="cc-output"{{ ch_attr(ch, 'output') }}>{{ self.output_group() }}</div>{%- endif -%}
 </div>
 </div>
 {% endblock codecell %}

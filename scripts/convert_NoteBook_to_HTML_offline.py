@@ -6,8 +6,15 @@ do not rotate/zoom without internet. This script vendors the exact 3Dmol.js the
 notebook references directly into the HTML, so the 3D viewers stay interactive
 fully offline (e.g. on a conference laptop with no network).
 
-Network is needed once, at conversion time, to fetch 3Dmol.js. The produced HTML
-is self-contained afterwards.
+It also supports a chardin.js guided tour: cells may carry one or more
+`#@chardin[:target] [position] text` directives (target = form | output | code,
+default form; position = left | right | top | bottom, English or 左/右/上/下,
+default left). Those become data-intro / data-position attributes, and jQuery +
+chardin.js + a floating "説明を表示" toggle button are inlined so the tour works
+offline. If no cell has a #@chardin directive, none of this is added.
+
+Network is needed once, at conversion time, to fetch 3Dmol.js (and jQuery +
+chardin.js when a tour is present). The produced HTML is self-contained afterwards.
 
 Usage:
     uv run --with nbconvert --with nbformat \
@@ -41,6 +48,36 @@ _MARKDOWN_RE = re.compile(r"^\s*#@markdown ?(?P<text>.*)$")
 _PARAM_RE = re.compile(
     r"^\s*(?P<name>\w+)\s*=\s*(?P<val>.*?)\s*#@param\b(?P<spec>.*)$"
 )
+
+# ---- chardin.js guided-tour directive: #@chardin[:target] [position] text ----
+# target  : form (default) | output | code   -> which element gets the hint
+# position: left (default) | right | top | bottom  (English or 左/右/上/下)
+# text    : the hint, rendered as HTML by chardin (so <br> etc. are allowed)
+_POS_EN = {"left", "right", "top", "bottom"}
+_POS_JP = {"左": "left", "右": "right", "上": "top", "下": "bottom"}
+_CHARDIN_TARGETS = {"form", "output", "code", "cell"}
+_CHARDIN_RE = re.compile(r"^\s*#@chardin(?::(?P<target>\w+))?\s+(?P<rest>.+?)\s*$")
+
+
+def _parse_chardin(target: str | None, rest: str) -> tuple[str, dict]:
+    """Parse one `#@chardin[:target] [position] text` directive into (target, spec).
+
+    The text may contain inline HTML such as <br>; the template autoescapes it into
+    entities, which the browser decodes back so chardin (data-intro -> innerHTML)
+    renders the tag.
+    """
+    target = (target or "form").lower()
+    if target not in _CHARDIN_TARGETS:
+        target = "form"
+    rest = rest.strip()
+    head, _, tail = rest.partition(" ")
+    if head in _POS_EN:
+        pos, text = head, tail.strip()
+    elif head in _POS_JP:
+        pos, text = _POS_JP[head], tail.strip()
+    else:
+        pos, text = "left", rest
+    return target, {"position": pos, "text": text}
 
 
 def _literal(text: str) -> str:
@@ -82,10 +119,16 @@ def parse_colab_form(source: str) -> dict:
     title = ""
     markdown_lines: list[str] = []
     fields: list[dict] = []
+    chardin: dict[str, dict] = {}
     for line in source.splitlines():
         tm = _TITLE_RE.match(line)
         if tm and line.lstrip().startswith("#@title"):
             title = tm.group("text").strip()
+            continue
+        cm = _CHARDIN_RE.match(line)
+        if cm and line.lstrip().startswith("#@chardin"):
+            target, spec = _parse_chardin(cm.group("target"), cm.group("rest"))
+            chardin[target] = spec
             continue
         mm = _MARKDOWN_RE.match(line)
         if mm and line.lstrip().startswith("#@markdown"):
@@ -95,7 +138,8 @@ def parse_colab_form(source: str) -> dict:
         if pm:
             fields.append(_parse_param(pm.group("name"), pm.group("val"),
                                        pm.group("spec")))
-    return {"title": title, "markdown": "\n".join(markdown_lines), "fields": fields}
+    return {"title": title, "markdown": "\n".join(markdown_lines),
+            "fields": fields, "chardin": chardin}
 
 
 class ColabFormPreprocessor(Preprocessor):
@@ -144,6 +188,70 @@ def _embed_3dmol(html: str) -> str:
     return inject + html
 
 
+# chardin.js (guided-tour overlay) + jQuery, fetched once at conversion time.
+_JQUERY_URL = "https://code.jquery.com/jquery-3.7.1.min.js"
+_CHARDIN_JS_URL = "https://cdn.jsdelivr.net/gh/heelhook/chardin.js/chardinjs.min.js"
+_CHARDIN_CSS_URL = "https://cdn.jsdelivr.net/gh/heelhook/chardin.js/chardinjs.css"
+
+# Floating "show guide" button + tooltip styling layered on top of chardin's own CSS.
+_CHARDIN_EXTRA_CSS = (
+    "#cc-guide-btn{position:fixed;right:20px;top:20px;z-index:2147483000;"
+    "display:flex;align-items:center;gap:6px;padding:10px 16px;border:0;border-radius:24px;"
+    "background:#1a73e8;color:#fff;font-family:'Roboto','Zen Kaku Gothic New',sans-serif;"
+    "font-size:14px;font-weight:500;box-shadow:0 2px 8px rgba(0,0,0,.3);cursor:pointer;}"
+    "#cc-guide-btn:hover{background:#1666c9;}"
+    ".chardinjs-tooltiptext{font-family:'Roboto','Zen Kaku Gothic New',sans-serif;"
+    "font-size:13px;line-height:1.6;}"
+    ".chardinjs-tooltip.chardinjs-left{max-width:250px;}"
+)
+
+# Injects a fixed "説明を表示" button that toggles the chardin overlay over the
+# elements that carry data-intro.
+_CHARDIN_BTN_JS = (
+    "(function(){function init(){var $=window.jQuery;if(!$){return;}"
+    "var b=document.createElement('button');b.id='cc-guide-btn';b.type='button';"
+    "b.textContent='説明を表示';"
+    "b.addEventListener('click',function(){$('body').chardinJs('toggle');});"
+    "document.body.appendChild(b);}"
+    "if(document.readyState!=='loading'){init();}"
+    "else{document.addEventListener('DOMContentLoaded',init);}})();"
+)
+
+
+def _embed_chardin(html: str) -> str:
+    """Inline jQuery + chardin.js and a guide button so the data-intro hints work
+    offline. No-op when the notebook has no #@chardin directives (no data-intro)."""
+    if "data-intro=" not in html:
+        return html
+
+    print(f"fetching jQuery + chardin.js: {_CHARDIN_JS_URL}")
+    jquery_js = _fetch(_JQUERY_URL)
+    chardin_js = _fetch(_CHARDIN_JS_URL)
+    chardin_css = _fetch(_CHARDIN_CSS_URL)
+
+    head = (
+        "<!-- chardin.js injected -->\n"
+        f"<style type=\"text/css\">{chardin_css}\n{_CHARDIN_EXTRA_CSS}</style>\n"
+    )
+    if "</head>" in html:
+        html = html.replace("</head>", head + "</head>", 1)
+    else:
+        html = head + html
+
+    # jQuery checks define.amd; the lab template ships require.js, so temporarily
+    # disable the AMD global so jQuery assigns window.jQuery (chardin needs it).
+    body = (
+        "<script>window.__cc_prev_define=window.define;window.define=undefined;</script>\n"
+        f"<script>{jquery_js}</script>\n"
+        f"<script>{chardin_js}</script>\n"
+        "<script>window.define=window.__cc_prev_define;</script>\n"
+        f"<script>{_CHARDIN_BTN_JS}</script>\n"
+    )
+    if "</body>" in html:
+        return html.replace("</body>", body + "</body>", 1)
+    return html + body
+
+
 def convert(nb_path: Path, out_path: Path | None) -> Path:
     """Render the notebook to a self-contained offline-interactive HTML file."""
     nb = nbformat.read(nb_path, as_version=4)
@@ -154,6 +262,7 @@ def convert(nb_path: Path, out_path: Path | None) -> Path:
     exporter.register_preprocessor(ColabFormPreprocessor, enabled=True)
     html, _ = exporter.from_notebook_node(nb)
     html = _embed_3dmol(html)
+    html = _embed_chardin(html)
 
     out_path = out_path or nb_path.with_suffix(".offline.html")
     out_path.write_text(html, encoding="utf-8")
