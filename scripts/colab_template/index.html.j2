@@ -51,6 +51,18 @@ details.cc-code .jp-InputArea{overflow:visible;}
 .cc-fld input[type=range]{width:240px;accent-color:var(--cc-blue);}
 .cc-fld input[type=checkbox]{width:18px;height:18px;accent-color:var(--cc-blue);}
 .cc-fld .cc-val{font-family:var(--cc-mono);color:var(--cc-ink);min-width:28px;}
+
+/* ---------- outputs: align to the cell body & let wide content scroll ---------- */
+/* Jupyter's In/Out prompt columns shift outputs (and code) right of the form/code
+   box; hide them so everything shares the same left edge and width. */
+.jp-InputPrompt,.jp-OutputPrompt,.jp-OutputArea-prompt{display:none!important;}
+.cc-body .jp-Cell-outputWrapper{margin:8px 0 0;}
+.cc-body .jp-OutputArea,.cc-body .jp-OutputArea-child{padding:0;margin:0;width:100%;}
+/* Wide outputs (e.g. a 3Dmol grid wider than the column) scroll instead of being
+   clipped on the right. */
+.cc-body .jp-OutputArea-output{padding:0;margin:0;max-width:100%;overflow-x:auto;}
+.cc-body .jp-OutputArea .jp-RenderedHTMLCommon{padding:0;}
+.cc-body .jp-RenderedImage img,.cc-body .jp-OutputArea img{max-width:100%;height:auto;}
 </style>
 {% endblock extra_css %}
 
