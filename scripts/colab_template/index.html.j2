@@ -33,10 +33,11 @@ details.cc-code .jp-InputArea-editor{border:0;background:transparent;}
 details.cc-code .jp-InputArea{overflow:visible;}
 
 /* ---------- Colab "form" cell ---------- */
+.cc-title{font-family:var(--cc-ui);font-weight:500;font-size:15px;color:var(--cc-ink);margin:18px 0 6px;}
 .cc-form{border:1px solid var(--cc-bd);border-radius:8px;background:#fff;overflow:hidden;}
-.cc-form-title{display:flex;align-items:center;gap:8px;padding:10px 14px;border-bottom:1px solid var(--cc-bd);
-  font-weight:500;background:#fafafa;color:var(--cc-ink);}
-.cc-form-title .cc-menu{margin-left:auto;color:#bdbdbd;letter-spacing:2px;}
+.cc-form-bar{display:flex;align-items:center;gap:8px;padding:8px 12px;border-bottom:1px solid var(--cc-bd);
+  background:#fafafa;color:var(--cc-ink);}
+.cc-form-bar .cc-menu{margin-left:auto;color:#bdbdbd;letter-spacing:2px;}
 .cc-form-md{padding:6px 16px 0;color:var(--cc-ink);font-size:13px;line-height:1.7;}
 .cc-form-md table{border-collapse:collapse;margin:6px 0;}
 .cc-form-md th,.cc-form-md td{border:1px solid var(--cc-bd);padding:4px 10px;text-align:left;}
@@ -87,10 +88,13 @@ document.querySelectorAll('.cc-fld input[type=range]').forEach(function(r){
 {%- set form = cell.metadata.get('colab_form', {}) -%}
 {%- set is_form = form.get('title') or form.get('fields') or form.get('markdown') -%}
 <div class="cc-cell jp-Cell jp-CodeCell jp-Notebook-cell {{ celltags(cell) }}">
+{%- if is_form and form.get('title') -%}
+<div class="cc-title">{{ form.title }}</div>
+{%- endif -%}
 <div class="cc-body">
 {%- if is_form -%}
   <div class="cc-form">
-    <div class="cc-form-title">{{ cc_runbtn() }}<span class="cc-title-text">{{ form.title }}</span><span class="cc-menu">&#8942;</span></div>
+    <div class="cc-form-bar">{{ cc_runbtn() }}<span class="cc-menu">&#8942;</span></div>
     {%- if form.get('markdown') -%}
     <div class="cc-form-md jp-RenderedHTMLCommon">{{ form.markdown | markdown2html }}</div>
     {%- endif -%}
