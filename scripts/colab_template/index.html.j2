@@ -35,14 +35,14 @@ details.cc-code .jp-InputArea{overflow:visible;}
 /* ---------- Colab "form" cell ---------- */
 .cc-title{font-family:var(--cc-ui);font-weight:500;font-size:15px;color:var(--cc-ink);margin:18px 0 6px;}
 .cc-form{border:1px solid var(--cc-bd);border-radius:8px;background:#fff;overflow:hidden;}
-.cc-form-bar{display:flex;align-items:center;gap:8px;padding:8px 12px;border-bottom:1px solid var(--cc-bd);
-  background:#fafafa;color:var(--cc-ink);}
-.cc-form-bar .cc-menu{margin-left:auto;color:#bdbdbd;letter-spacing:2px;}
-.cc-form-md{padding:6px 16px 0;color:var(--cc-ink);font-size:13px;line-height:1.7;}
+.cc-form-row{display:flex;align-items:flex-start;gap:10px;padding:12px 14px;}
+.cc-form-row>.cc-runbtn{margin-top:1px;}
+.cc-form-content{flex:1;min-width:0;}
+.cc-form-md{padding:0;color:var(--cc-ink);font-size:13px;line-height:1.7;}
 .cc-form-md table{border-collapse:collapse;margin:6px 0;}
 .cc-form-md th,.cc-form-md td{border:1px solid var(--cc-bd);padding:4px 10px;text-align:left;}
 .cc-form-md hr{border:0;border-top:1px solid var(--cc-bd);margin:8px 0;}
-.cc-form-grid{padding:14px 18px;display:grid;grid-template-columns:220px 1fr;gap:12px 18px;align-items:center;}
+.cc-form-grid{padding:10px 0 2px;display:grid;grid-template-columns:220px 1fr;gap:12px 18px;align-items:center;}
 .cc-form-grid>label{color:var(--cc-mut);font-family:var(--cc-mono);font-size:13px;}
 .cc-fld{display:flex;align-items:center;gap:10px;}
 .cc-fld input[type=text]{font-family:var(--cc-mono);font-size:13px;padding:7px 10px;border:1px solid var(--cc-bd);
@@ -70,8 +70,8 @@ details.cc-code .jp-InputArea{overflow:visible;}
 <span class="cc-runbtn"><svg width="11" height="11" viewBox="0 0 12 12" fill="currentColor"><path d="M2 1.5v9l8-4.5z"/></svg></span>
 {%- endmacro -%}
 
-{%- macro cc_summary(run=false) -%}
-<summary>{% if run %}{{ cc_runbtn() }}{% endif %}<span class="cc-ico">&#9656;</span><span class="cc-lbl-show">Show code</span><span class="cc-lbl-hide">Hide code</span></summary>
+{%- macro cc_summary() -%}
+<summary><span class="cc-ico">&#9656;</span><span class="cc-lbl-show">Show code</span><span class="cc-lbl-hide">Hide code</span></summary>
 {%- endmacro -%}
 
 {% block footer_js %}
@@ -94,7 +94,9 @@ document.querySelectorAll('.cc-fld input[type=range]').forEach(function(r){
 <div class="cc-body">
 {%- if is_form -%}
   <div class="cc-form">
-    <div class="cc-form-bar">{{ cc_runbtn() }}<span class="cc-menu">&#8942;</span></div>
+    <div class="cc-form-row">
+    {{ cc_runbtn() }}
+    <div class="cc-form-content">
     {%- if form.get('markdown') -%}
     <div class="cc-form-md jp-RenderedHTMLCommon">{{ form.markdown | markdown2html }}</div>
     {%- endif -%}
@@ -116,10 +118,12 @@ document.querySelectorAll('.cc-fld input[type=range]').forEach(function(r){
       {%- endfor -%}
     </div>
     {%- endif -%}
+    </div>
+    </div>
   </div>
   <details class="cc-code">{{ cc_summary() }}{{ self.input() }}</details>
 {%- else -%}
-  <details class="cc-code" open>{{ cc_summary(true) }}{{ self.input() }}</details>
+  <details class="cc-code" open>{{ cc_summary() }}{{ self.input() }}</details>
 {%- endif -%}
 {%- if cell.outputs -%}{{ self.output_group() }}{%- endif -%}
 </div>
