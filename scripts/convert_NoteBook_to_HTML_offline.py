@@ -189,8 +189,11 @@ def _embed_3dmol(html: str) -> str:
 
 
 # chardin.js (guided-tour overlay) + jQuery, fetched once at conversion time.
-_JQUERY_URL = "https://code.jquery.com/jquery-3.7.1.min.js"
-_CHARDIN_JS_URL = "https://cdn.jsdelivr.net/gh/heelhook/chardin.js/chardinjs.min.js"
+# jQuery 1.9.1 + the full (non-min) chardinjs.js are the exact combination known to
+# work; the minified chardin build is an older/incompatible variant whose toggle()
+# did not open the overlay.
+_JQUERY_URL = "https://code.jquery.com/jquery-1.9.1.min.js"
+_CHARDIN_JS_URL = "https://cdn.jsdelivr.net/gh/heelhook/chardin.js/chardinjs.js"
 _CHARDIN_CSS_URL = "https://cdn.jsdelivr.net/gh/heelhook/chardin.js/chardinjs.css"
 
 # Floating "show guide" button + tooltip styling layered on top of chardin's own CSS.
